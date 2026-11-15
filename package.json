@@ -1,0 +1,53 @@
+{
+  "name": "smart-road-tracker",
+  "version": "1.0.0",
+  "description": "Zero-dependency TypeScript SDK for sparse GPS noise filtering, offline queueing, and road-snapping via pluggable map-matching providers (OSRM, Mapbox, custom backends).",
+  "author": "BingVader",
+  "license": "MIT",
+  "keywords": [
+    "gps",
+    "map-matching",
+    "osrm",
+    "mapbox",
+    "geolocation",
+    "sparse-tracking",
+    "haversine",
+    "road-snapping",
+    "typescript"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
