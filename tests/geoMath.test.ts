@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   bearingDelta,
+  calculateAverageSpeed,
+  calculateRouteDistance,
+  calculateRouteDuration,
   decodePolyline,
   EARTH_RADIUS_METERS,
   encodePolyline,
   haversineDistance,
   initialBearing,
   isValidCoordinate,
+  pointsToFeatureCollection,
   pointsToLineString,
+  routeToFeature,
   stitchLineStrings,
   toDegrees,
   toRadians,
@@ -193,6 +198,76 @@ describe('geoMath utilities', () => {
         [-0.1, 51.5],
         [-0.2, 51.6],
       ]);
+    });
+  });
+
+  describe('calculateRouteDistance', () => {
+    it('returns 0 for empty or single-point paths', () => {
+      expect(calculateRouteDistance([])).toBe(0);
+      expect(calculateRouteDistance([[-0.1, 51.5]])).toBe(0);
+    });
+
+    it('calculates accurate distance along coordinate segments', () => {
+      // Coordinates are [lon, lat]
+      const coords: [number, number][] = [
+        [0, 0],
+        [0, 0.001],
+        [0, 0.002],
+      ];
+      const dist = calculateRouteDistance(coords);
+      expect(dist).toBeGreaterThan(220);
+      expect(dist).toBeLessThan(224);
+    });
+  });
+
+  describe('calculateRouteDuration and calculateAverageSpeed', () => {
+    it('calculates duration in seconds', () => {
+      const points: GPSPoint[] = [
+        { latitude: 51.5, longitude: -0.1, timestamp: 1000 },
+        { latitude: 51.501, longitude: -0.1, timestamp: 61000 },
+      ];
+      expect(calculateRouteDuration(points)).toBe(60);
+      expect(calculateRouteDuration([])).toBe(0);
+    });
+
+    it('calculates average speed in m/s', () => {
+      const points: GPSPoint[] = [
+        { latitude: 0, longitude: 0, timestamp: 1000 },
+        { latitude: 0.001, longitude: 0, timestamp: 11000 },
+      ]; // ~111m in 10s = ~11.1 m/s
+      const speed = calculateAverageSpeed(points);
+      expect(speed).toBeGreaterThan(10);
+      expect(speed).toBeLessThan(12);
+
+      // With distance override
+      expect(calculateAverageSpeed(points, 200)).toBe(20);
+    });
+  });
+
+  describe('routeToFeature and pointsToFeatureCollection', () => {
+    it('wraps LineString into a GeoJSON Feature', () => {
+      const ls = {
+        type: 'LineString' as const,
+        coordinates: [[-0.1, 51.5], [-0.2, 51.6]] as [number, number][],
+      };
+      const feature = routeToFeature(ls, { name: 'My Route' });
+      expect(feature.type).toBe('Feature');
+      expect(feature.geometry.coordinates).toEqual(ls.coordinates);
+      expect(feature.properties.name).toBe('My Route');
+    });
+
+    it('converts GPSPoint array into FeatureCollection of Point features', () => {
+      const points: GPSPoint[] = [
+        { latitude: 51.5, longitude: -0.1, timestamp: 1000, accuracy: 5, altitude: 20 },
+        { latitude: 51.6, longitude: -0.2, timestamp: 2000, speed: 12 },
+      ];
+      const fc = pointsToFeatureCollection(points);
+      expect(fc.type).toBe('FeatureCollection');
+      expect(fc.features.length).toBe(2);
+      expect(fc.features[0].geometry.type).toBe('Point');
+      expect(fc.features[0].geometry.coordinates).toEqual([-0.1, 51.5, 20]);
+      expect(fc.features[0].properties.accuracy).toBe(5);
+      expect(fc.features[1].properties.speed).toBe(12);
     });
   });
 });

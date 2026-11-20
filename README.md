@@ -72,11 +72,23 @@ Mobile geolocation apps face an expensive trade-off:
 
 ## 📦 Installation
 
-```bash
-npm install smart-road-tracker
+### From GitHub Packages:
+
+Add to your project's `.npmrc`:
+```ini
+@bingvader:registry=https://npm.pkg.github.com
 ```
 
-Dual ESM/CJS is supported out of the box with complete TypeScript type declarations (`.d.ts`).
+Install via your package manager:
+```bash
+npm install @bingvader/smart-road-tracker
+# or
+pnpm add @bingvader/smart-road-tracker
+# or
+yarn add @bingvader/smart-road-tracker
+```
+
+Dual ESM/CJS is supported out of the box with complete TypeScript type declarations (`.d.ts` and `.d.mts`).
 
 ---
 
@@ -307,7 +319,12 @@ const tracker = new RoadTracker({
 | `stopBrowserTracking()` | `void` | Clears active browser geolocation watcher |
 | `flush()` | `Promise<MatchedRouteResult \| null>` | Manually flushes queued points to provider and updates cumulative route |
 | `getFullRoute()` | `GeoJSONLineString` | Returns cumulative stitched road-snapped GeoJSON LineString |
+| `getFullRouteFeature(properties?)` | `GeoJSONFeature<GeoJSONLineString>` | Returns cumulative road-matched route wrapped as a GeoJSON Feature |
 | `getRawRoute()` | `GeoJSONLineString` | Returns raw accepted coordinates as GeoJSON LineString |
+| `getTotalDistance()` | `number` | Returns total road-matched cumulative distance in meters |
+| `getRawDistance()` | `number` | Returns total raw GPS distance in meters |
+| `getTripSummary()` | `TripSummary` | Returns statistical metrics (distance, duration, point count, average speed) |
+| `getFilter()` | `SpatialFilter` | Accesses active spatial noise filter for inspection or dynamic configuration |
 | `getQueue()` | `Promise<GPSPoint[]>` | Returns points currently waiting in offline queue |
 | `start()` | `void` | Starts tracker and enables periodic sync timer |
 | `stop()` | `Promise<void>` | Stops timers, stops browser tracking, and flushes remaining queue |
@@ -335,13 +352,18 @@ Pure zero-dependency geodesy functions exported directly:
 - `encodePolyline(coordinates, precision?): string`
 - `stitchLineStrings(geometries: GeoJSONLineString[]): GeoJSONLineString`
 - `pointsToLineString(points: GPSPoint[]): GeoJSONLineString`
+- `calculateRouteDistance(coordinates: [lon, lat][]): number`
+- `calculateRouteDuration(points: GPSPoint[]): number`
+- `calculateAverageSpeed(points: GPSPoint[], distanceMeters?): number`
+- `routeToFeature(lineString, properties?): GeoJSONFeature`
+- `pointsToFeatureCollection(points: GPSPoint[]): GeoJSONFeatureCollection`
 
 ---
 
 ## 🧪 Testing & Build
 
 ```bash
-# Run unit test suite (54 unit tests across all modules)
+# Run unit test suite
 npm test
 
 # Run TypeScript strict type-check

@@ -272,4 +272,55 @@ describe('RoadTracker', () => {
     tracker.stopBrowserTracking();
     expect(clearWatchMock).toHaveBeenCalledWith(999);
   });
+
+  it('calculates trip summary, total distance, raw distance, and Feature export', async () => {
+    tracker = new RoadTracker({
+      provider: mockProvider,
+      autoFlush: false,
+    });
+
+    // Initial empty summary
+    const emptySummary = tracker.getTripSummary();
+    expect(emptySummary.totalPointsAccepted).toBe(0);
+    expect(emptySummary.matchedDistanceMeters).toBe(0);
+    expect(tracker.getTotalDistance()).toBe(0);
+
+    // Push 2 accepted points
+    await tracker.pushPoint({
+      latitude: 51.5,
+      longitude: -0.1,
+      timestamp: 1000,
+      accuracy: 10,
+    });
+
+    await tracker.pushPoint({
+      latitude: 51.501,
+      longitude: -0.1,
+      timestamp: 11000,
+      accuracy: 10,
+    });
+
+    await tracker.flush();
+
+    expect(tracker.getRawDistance()).toBeGreaterThan(100);
+    expect(tracker.getTotalDistance()).toBeGreaterThan(100);
+
+    const summary = tracker.getTripSummary();
+    expect(summary.totalPointsAccepted).toBe(2);
+    expect(summary.durationSeconds).toBe(10);
+    expect(summary.averageSpeedMps).toBeGreaterThan(10);
+    expect(summary.startTimeMs).toBe(1000);
+    expect(summary.endTimeMs).toBe(11000);
+
+    // Feature export
+    const feature = tracker.getFullRouteFeature({ id: 'trip-1' });
+    expect(feature.type).toBe('Feature');
+    expect(feature.geometry.type).toBe('LineString');
+    expect(feature.properties.id).toBe('trip-1');
+    expect(feature.geometry.coordinates.length).toBeGreaterThanOrEqual(2);
+
+    // Filter access
+    expect(tracker.getFilter()).toBeDefined();
+    expect(tracker.getFilter().getOptions().maxAccuracyMeters).toBe(50);
+  });
 });

@@ -29,6 +29,14 @@ export interface GPSPoint {
 export type GeoJSONPosition = [number, number] | [number, number, number];
 
 /**
+ * GeoJSON Point geometry representation.
+ */
+export interface GeoJSONPoint {
+  type: 'Point';
+  coordinates: [number, number] | [number, number, number];
+}
+
+/**
  * GeoJSON LineString geometry representation.
  */
 export interface GeoJSONLineString {
@@ -51,6 +59,26 @@ export interface GeoJSONFeature<G = GeoJSONLineString, P = Record<string, unknow
 export interface GeoJSONFeatureCollection<G = GeoJSONLineString, P = Record<string, unknown>> {
   type: 'FeatureCollection';
   features: GeoJSONFeature<G, P>[];
+}
+
+/**
+ * Summary metrics of a tracked trip or trajectory.
+ */
+export interface TripSummary {
+  /** Total road-matched cumulative distance in meters */
+  matchedDistanceMeters: number;
+  /** Total raw GPS distance in meters */
+  rawDistanceMeters: number;
+  /** Total count of accepted GPS points */
+  totalPointsAccepted: number;
+  /** Timestamp of first accepted point in milliseconds, or undefined if empty */
+  startTimeMs?: number;
+  /** Timestamp of last accepted point in milliseconds, or undefined if empty */
+  endTimeMs?: number;
+  /** Total duration of the trip in seconds, or undefined if empty */
+  durationSeconds?: number;
+  /** Average speed across the trip in meters per second (based on matched distance), or undefined */
+  averageSpeedMps?: number;
 }
 
 /**

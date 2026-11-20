@@ -8,6 +8,7 @@ import { createFallbackRoute } from './providers/matchingProvider';
 import { MemoryStorage } from './storage/memoryStorage';
 import {
   FilterResult,
+  GeoJSONFeature,
   GeoJSONLineString,
   GPSPoint,
   MatchedRouteResult,
@@ -16,8 +17,15 @@ import {
   TrackerConfig,
   TrackerEventMap,
   TrackerState,
+  TripSummary,
 } from './types';
-import { pointsToLineString, stitchLineStrings } from './utils/geoMath';
+import {
+  calculateRouteDistance,
+  calculateRouteDuration,
+  pointsToLineString,
+  routeToFeature,
+  stitchLineStrings,
+} from './utils/geoMath';
 
 type Listener = (...args: unknown[]) => void;
 
@@ -301,6 +309,77 @@ export class RoadTracker {
       type: 'LineString',
       coordinates: [...this.cumulativeMatchedRoute.coordinates],
     };
+  }
+
+  /**
+   * Returns the cumulative road-matched route wrapped in a standard GeoJSON Feature.
+   * Convenient for direct ingestion into Mapbox GL JS, Leaflet, or OpenLayers.
+   *
+   * @param properties Optional properties to include in the Feature
+   */
+  public getFullRouteFeature<P = Record<string, unknown>>(
+    properties: P = {} as P
+  ): GeoJSONFeature<GeoJSONLineString, P> {
+    return routeToFeature(this.cumulativeMatchedRoute, properties);
+  }
+
+  /**
+   * Returns the total road-matched route distance in meters.
+   */
+  public getTotalDistance(): number {
+    return calculateRouteDistance(this.cumulativeMatchedRoute.coordinates);
+  }
+
+  /**
+   * Returns the total raw GPS route distance in meters.
+   */
+  public getRawDistance(): number {
+    return calculateRouteDistance(
+      this.cumulativeRawPoints.map((p) => [p.longitude, p.latitude])
+    );
+  }
+
+  /**
+   * Returns a comprehensive statistical summary of the tracked trip,
+   * including matched vs raw distance, duration, point count, and average speed.
+   */
+  public getTripSummary(): TripSummary {
+    const totalPoints = this.cumulativeRawPoints.length;
+    const matchedDist = this.getTotalDistance();
+    const rawDist = this.getRawDistance();
+
+    if (totalPoints === 0) {
+      return {
+        matchedDistanceMeters: 0,
+        rawDistanceMeters: 0,
+        totalPointsAccepted: 0,
+      };
+    }
+
+    const startTimeMs = this.cumulativeRawPoints[0]?.timestamp;
+    const endTimeMs = this.cumulativeRawPoints[totalPoints - 1]?.timestamp;
+    const durationSeconds = calculateRouteDuration(this.cumulativeRawPoints);
+    const averageSpeedMps =
+      durationSeconds > 0
+        ? (matchedDist > 0 ? matchedDist : rawDist) / durationSeconds
+        : 0;
+
+    return {
+      matchedDistanceMeters: matchedDist,
+      rawDistanceMeters: rawDist,
+      totalPointsAccepted: totalPoints,
+      startTimeMs,
+      endTimeMs,
+      durationSeconds,
+      averageSpeedMps,
+    };
+  }
+
+  /**
+   * Returns the underlying SpatialFilter instance for inspection or runtime option updates.
+   */
+  public getFilter(): SpatialFilter {
+    return this.filter;
   }
 
   /**

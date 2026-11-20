@@ -10,9 +10,11 @@ export { RoadTracker } from './tracker';
 export type {
   GPSPoint,
   GeoJSONPosition,
+  GeoJSONPoint,
   GeoJSONLineString,
   GeoJSONFeature,
   GeoJSONFeatureCollection,
+  TripSummary,
   FilterOptions,
   FilterRejectReason,
   FilterMetadata,
@@ -71,4 +73,9 @@ export {
   encodePolyline,
   stitchLineStrings,
   pointsToLineString,
+  calculateRouteDistance,
+  calculateRouteDuration,
+  calculateAverageSpeed,
+  routeToFeature,
+  pointsToFeatureCollection,
 } from './utils/geoMath';

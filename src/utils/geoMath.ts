@@ -4,7 +4,13 @@
  * Zero external runtime dependencies.
  */
 
-import { GeoJSONLineString, GPSPoint } from '../types';
+import {
+  GeoJSONFeature,
+  GeoJSONFeatureCollection,
+  GeoJSONLineString,
+  GeoJSONPoint,
+  GPSPoint,
+} from '../types';
 
 /** Earth mean radius in meters according to WGS-84 standard */
 export const EARTH_RADIUS_METERS = 6371008.8;
@@ -263,5 +269,125 @@ export function pointsToLineString(points: GPSPoint[]): GeoJSONLineString {
   return {
     type: 'LineString',
     coordinates: points.map((p) => [p.longitude, p.latitude]),
+  };
+}
+
+/**
+ * Calculates total cumulative distance in meters along a polyline / coordinate path.
+ *
+ * @param coordinates Array of GeoJSON [longitude, latitude] coordinates
+ * @returns Total distance in meters
+ */
+export function calculateRouteDistance(coordinates: [number, number][]): number {
+  if (coordinates.length < 2) {
+    return 0;
+  }
+
+  let totalDistance = 0;
+  for (let i = 1; i < coordinates.length; i++) {
+    const prev = coordinates[i - 1];
+    const curr = coordinates[i];
+    if (prev && curr) {
+      totalDistance += haversineDistance(prev[1], prev[0], curr[1], curr[0]);
+    }
+  }
+
+  return totalDistance;
+}
+
+/**
+ * Calculates the total elapsed duration in seconds between the first and last point.
+ *
+ * @param points Array of GPS points
+ * @returns Duration in seconds (or 0 if fewer than 2 points)
+ */
+export function calculateRouteDuration(points: GPSPoint[]): number {
+  if (points.length < 2) {
+    return 0;
+  }
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (!first || !last) {
+    return 0;
+  }
+  const elapsedMs = Math.max(0, last.timestamp - first.timestamp);
+  return elapsedMs / 1000;
+}
+
+/**
+ * Calculates the average speed in meters per second across a set of GPS points.
+ *
+ * @param points Array of GPS points
+ * @param distanceMeters Optional distance override (e.g. matched distance). If not provided, computed from raw points.
+ * @returns Average speed in meters per second (m/s)
+ */
+export function calculateAverageSpeed(
+  points: GPSPoint[],
+  distanceMeters?: number
+): number {
+  const durationSec = calculateRouteDuration(points);
+  if (durationSec <= 0) {
+    return 0;
+  }
+  const dist =
+    distanceMeters !== undefined
+      ? distanceMeters
+      : calculateRouteDistance(points.map((p) => [p.longitude, p.latitude]));
+
+  return dist / durationSec;
+}
+
+/**
+ * Wraps a GeoJSON LineString geometry in a standard GeoJSON Feature object.
+ *
+ * @param lineString The GeoJSON LineString geometry
+ * @param properties Optional properties object
+ * @returns GeoJSON Feature object
+ */
+export function routeToFeature<P = Record<string, unknown>>(
+  lineString: GeoJSONLineString,
+  properties: P = {} as P
+): GeoJSONFeature<GeoJSONLineString, P> {
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: [...lineString.coordinates],
+    },
+    properties,
+  };
+}
+
+/**
+ * Converts an array of GPSPoint objects into a GeoJSON FeatureCollection of Point features,
+ * retaining point properties such as timestamp, accuracy, speed, heading, and altitude.
+ *
+ * @param points Array of GPS points
+ * @returns GeoJSON FeatureCollection of Points
+ */
+export function pointsToFeatureCollection(
+  points: GPSPoint[]
+): GeoJSONFeatureCollection<GeoJSONPoint, Record<string, unknown>> {
+  return {
+    type: 'FeatureCollection',
+    features: points.map((p, index) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [
+          p.longitude,
+          p.latitude,
+          ...(p.altitude !== undefined ? [p.altitude] : []),
+        ] as [number, number] | [number, number, number],
+      },
+      properties: {
+        index,
+        timestamp: p.timestamp,
+        accuracy: p.accuracy,
+        speed: p.speed,
+        heading: p.heading,
+        altitude: p.altitude,
+      },
+    })),
   };
 }
