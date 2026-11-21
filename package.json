@@ -1,6 +1,6 @@
 {
-  "name": "@bingvader/smart-road-tracker",
-  "version": "1.0.0",
+  "name": "smart-road-tracker",
+  "version": "1.1.0",
   "description": "Zero-dependency TypeScript SDK for sparse GPS noise filtering, offline queueing, and road-snapping via pluggable map-matching providers (OSRM, Mapbox, custom backends).",
   "author": "BingVader",
   "license": "MIT",
@@ -46,7 +46,7 @@
   ],
   "publishConfig": {
     "access": "public",
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "build": "tsup",
